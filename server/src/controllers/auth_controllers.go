@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -55,7 +56,7 @@ func (h *UserController) Login(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, encryptedUser)
+	c.JSON(http.StatusOK, json.RawMessage(encryptedUser))
 }
 
 

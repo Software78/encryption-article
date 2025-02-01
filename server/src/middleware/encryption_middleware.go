@@ -345,7 +345,7 @@ func (m *CryptoMiddleware) EncryptValues(data interface{}) ([]byte, error) {
         }
         fmt.Println(string(encryptedJSON))
 
-        return json.RawMessage(encryptedJSON), nil
+        return encryptedJSON, nil
 }
 
 func (m *CryptoMiddleware) encryptMapValues(dataMap map[string]interface{}) (map[string]interface{}, error) {
