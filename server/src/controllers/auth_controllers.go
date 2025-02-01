@@ -1,14 +1,18 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
+	middleware "github.com/Software78/encryption-test/src/middleware"
 	models "github.com/Software78/encryption-test/src/models"
 	services "github.com/Software78/encryption-test/src/services"
 
 	// utils "github.com/Software78/encryption-test/src/utils"
 	"github.com/gin-gonic/gin"
 )
+
+
 
 type UserController struct {
 	userService services.UserService
@@ -44,7 +48,14 @@ func (h *UserController) Login(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	crypto, _ := middleware.NewCryptoMiddlewareFromEnv( `/docs/`)
+	encryptedUser , err :=	crypto.EncryptValues(user)
+	fmt.Println(encryptedUser)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, encryptedUser)
 }
 
 

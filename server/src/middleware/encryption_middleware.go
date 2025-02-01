@@ -314,3 +314,99 @@ func (m *CryptoMiddleware) decryptJSON(data []byte) (map[string]interface{}, err
 
         return jsonData, nil
 }
+
+
+
+func (m *CryptoMiddleware) EncryptValues(data interface{}) ([]byte, error) {
+        // 1. Marshal the interface to JSON (to handle different data structures)
+        jsonData, err := json.Marshal(data)
+        if err != nil {
+                return nil, fmt.Errorf("failed to marshal interface to JSON: %w", err)
+        }
+
+        // 2. Unmarshal the JSON into a map[string]interface{}
+        var dataMap map[string]interface{}
+        err = json.Unmarshal(jsonData, &dataMap)
+        if err != nil {
+                return nil, fmt.Errorf("failed to unmarshal JSON to map: %w", err)
+        }
+
+
+        // 3. Encrypt only the values in the map
+        encryptedMap, err := m.encryptMapValues(dataMap) // Helper function (see below)
+        if err != nil {
+                return nil, err
+        }
+
+        // 4. Marshal the map back to JSON
+        encryptedJSON, err := json.Marshal(encryptedMap)
+        if err != nil {
+                return nil, fmt.Errorf("failed to marshal encrypted map to JSON: %w", err)
+        }
+        fmt.Println(string(encryptedJSON))
+
+        return json.RawMessage(encryptedJSON), nil
+}
+
+func (m *CryptoMiddleware) encryptMapValues(dataMap map[string]interface{}) (map[string]interface{}, error) {
+    encryptedMap := make(map[string]interface{})
+    for key, value := range dataMap {
+        switch v := value.(type) {
+        case string:
+            encryptedValue, err := m.encrypt([]byte(v))
+            if err != nil {
+                return nil, fmt.Errorf("error encrypting field %s: %w", key, err)
+            }
+            encryptedMap[key] = encryptedValue // Encrypt string value
+
+        case map[string]interface{}: // Handle nested maps
+            nestedEncryptedMap, err := m.encryptMapValues(v)
+            if err != nil {
+                return nil, err
+            }
+            encryptedMap[key] = nestedEncryptedMap
+
+        case []interface{}: // Handle arrays
+            encryptedArray := make([]interface{}, len(v))
+            for i, item := range v {
+                itemJSON, err := json.Marshal(item)
+                if err != nil {
+                    return nil, err
+                }
+                var itemMap map[string]interface{}
+                err = json.Unmarshal(itemJSON, &itemMap)
+                if err != nil {
+                    // If not a map (e.g., string), encrypt directly
+                    itemString, ok := item.(string)
+                    if ok {
+                        encryptedItem, err := m.encrypt([]byte(itemString))
+                        if err != nil {
+                            return nil, fmt.Errorf("error encrypting array item %d: %w", i, err)
+                        }
+                        encryptedArray[i] = encryptedItem
+                    } else {
+                        encryptedArray[i] = item // Keep non-string array items as they are
+                    }
+                    continue
+                }
+                encryptedItem, err := m.encryptMapValues(itemMap)
+                if err != nil {
+                    return nil, err
+                }
+                encryptedArray[i] = encryptedItem
+            }
+            encryptedMap[key] = encryptedArray
+
+        default:
+            // For other types (numbers, booleans, etc.), encrypt if needed
+            // Or keep them as they are if no encryption is required
+            strValue := fmt.Sprintf("%v", v)
+            encryptedValue, err := m.encrypt([]byte(strValue))
+            if err != nil {
+                return nil, fmt.Errorf("error encrypting field %s: %w", key, err)
+            }
+            encryptedMap[key] = encryptedValue
+        }
+    }
+    return encryptedMap, nil
+}
