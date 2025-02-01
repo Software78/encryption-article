@@ -76,10 +76,30 @@ func (h *UserController) Register(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	user, err := h.userService.Register(register)
+	decryptedJSON := c.MustGet("decryptedJSON").(map[string]interface{})
+	decryptedRegister := models.Register{
+		FirstName: decryptedJSON["first_name"].(string),
+		LastName:  decryptedJSON["last_name"].(string),
+		Email:     decryptedJSON["email"].(string),
+		Password:  decryptedJSON["password"].(string),
+	}
+	_, err := h.userService.Register(&decryptedRegister)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	registeredUser,err := h.userService.GetUserByEmail(decryptedRegister.Email)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	crypto, _ := middleware.NewCryptoMiddlewareFromEnv( `/docs/`)
+	encryptedUser , err :=	crypto.EncryptValues(registeredUser)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK,  json.RawMessage(encryptedUser))
 }

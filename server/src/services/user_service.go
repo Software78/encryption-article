@@ -3,6 +3,7 @@ package services
 import (
 	models "github.com/Software78/encryption-test/src/models"
 	repository "github.com/Software78/encryption-test/src/repository"
+	"github.com/google/uuid"
 )
 
 type UserService struct {
@@ -23,4 +24,12 @@ func (s *UserService) Login(login *models.Login) (*models.User, error) {
 
 func (s *UserService) Register(register *models.Register) (*models.User, error) {
 	return s.repository.Register(register)
+}
+
+func (s *UserService) GetUserByID(id uuid.UUID) (*models.User, error) {
+	return s.repository.GetUserByID(id)
+}
+
+func (s *UserService) GetUserByEmail(email string) (*models.User, error) {
+	return s.repository.GetUserByEmail(email)
 }
