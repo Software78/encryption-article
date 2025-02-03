@@ -132,12 +132,7 @@ func (m *CryptoMiddleware) DecryptRequestMiddleware() gin.HandlerFunc {
                         return
                 }
 
-                contentType := c.Request.Header.Get("Content-Type")
-                if !strings.Contains(contentType, "application/json") {
-                        c.AbortWithError(http.StatusUnsupportedMediaType, 
-                                errors.New("only application/json content type is supported"))
-                        return
-                }
+               
 
                 body, err := io.ReadAll(c.Request.Body)
                 if err != nil {
