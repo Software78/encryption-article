@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Software78/encryption-test/src/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -85,7 +86,6 @@ func handleErrors(c *gin.Context) {
 		case errors.Is(primaryError, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "Resource Not Found",
-				
 			})
 		case errors.Is(primaryError, gorm.ErrDuplicatedKey):
 			c.JSON(http.StatusConflict, gin.H{
@@ -95,15 +95,17 @@ func handleErrors(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid credentials",
 			})
-			case errors.Is(primaryError,  errors.New("field is not encryped")):
+		case errors.Is(primaryError, errors.New("field is not encryped")):
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "field is not encryped",
 			})
 		default:
 			// Log unexpected errors
 			log.Printf("Unhandled error: %v", primaryError)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Internal Server Error",
+			c.JSON(http.StatusInternalServerError, utils.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Err:     primaryError,
 			})
 		}
 		return

@@ -12,7 +12,7 @@ import (
         "os"
         "regexp"
         "strings"
-
+        "errors"
         "github.com/gin-gonic/gin"
 )
 
@@ -132,27 +132,33 @@ func (m *CryptoMiddleware) DecryptRequestMiddleware() gin.HandlerFunc {
                         return
                 }
 
-                if strings.Contains(c.Request.Header.Get("Content-Type"), "application/json") {
-                        body, err := io.ReadAll(c.Request.Body)
+                contentType := c.Request.Header.Get("Content-Type")
+                if !strings.Contains(contentType, "application/json") {
+                        c.AbortWithError(http.StatusUnsupportedMediaType, 
+                                errors.New("only application/json content type is supported"))
+                        return
+                }
+
+                body, err := io.ReadAll(c.Request.Body)
+                if err != nil {
+                        c.AbortWithStatus(http.StatusBadRequest)
+                        return
+                }
+
+                if len(body) > 0 {
+                        decryptedData, err := m.decryptJSON(body)
                         if err != nil {
-                                c.AbortWithStatus(http.StatusBadRequest)
+                                // Return 400 Bad Request for any decryption failures
+                                c.AbortWithError(http.StatusBadRequest, 
+                                        fmt.Errorf("failed to decrypt request body: %v", err))
                                 return
                         }
 
-                        if len(body) > 0 {
-                                decryptedData, err := m.decryptJSON(body) // Decrypt!
-                                if err != nil {
-                                        c.AbortWithError(http.StatusBadRequest, err)
-                                        return
-                                }
-
-                                // Attach decrypted JSON to the context
-                                c.Set("decryptedJSON", decryptedData)
-                                c.Request.Body = io.NopCloser(bytes.NewBuffer(body)) // Keep original body for logging
-                        }
+                        c.Set("decryptedJSON", decryptedData)
+                        c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
                 }
 
-                c.Next() // Continue to the next handler
+                c.Next()
         }
 }
 
@@ -251,7 +257,7 @@ func (m *CryptoMiddleware) decryptJSON(data []byte) (map[string]interface{}, err
         var jsonData map[string]interface{}
         err := json.Unmarshal(data, &jsonData)
         if err != nil {
-                return nil, err
+                return nil, fmt.Errorf("invalid JSON format: %v", err)
         }
 
         for key, value := range jsonData {
@@ -259,33 +265,25 @@ func (m *CryptoMiddleware) decryptJSON(data []byte) (map[string]interface{}, err
                 case string:
                         decryptedBytes, err := m.decrypt(v)
                         if err != nil {
-                                if strings.Contains(err.Error(), "illegal base64 data") {
-                                        fmt.Printf("Field %s is not encrypted, keeping original value: %v\n", key, v)
-                                        jsonData[key] = v
-                                        continue
-                                }
-                                fmt.Printf("Decryption error for key %s: %v\n", key, err)
-                                jsonData[key] = v
-                                continue
-
-                        } else {
-                    if len(v) > 1 && v[0] == '"' && v[len(v)-1] == '"' {
-                        var decryptedValue interface{}
-                        err = json.Unmarshal(decryptedBytes, &decryptedValue)
-                        if err != nil {
-                            fmt.Printf("Could not unmarshal decrypted JSON string for key %s, treating as string: %v\n", key, err)
-                            decryptedValue = string(decryptedBytes)
+                                return nil, fmt.Errorf("failed to decrypt field '%s': %v", key, err)
                         }
-                        jsonData[key] = decryptedValue
-                    } else {
-                        jsonData[key] = string(decryptedBytes)
-                    }
-                }
+                        
+                        // Handle JSON string values (wrapped in quotes)
+                        if len(v) > 1 && v[0] == '"' && v[len(v)-1] == '"' {
+                                var decryptedValue interface{}
+                                err = json.Unmarshal(decryptedBytes, &decryptedValue)
+                                if err != nil {
+                                        return nil, fmt.Errorf("invalid JSON in decrypted value for field '%s': %v", key, err)
+                                }
+                                jsonData[key] = decryptedValue
+                        } else {
+                                jsonData[key] = string(decryptedBytes)
+                        }
 
                 case map[string]interface{}:
                         nestedJSON, err := json.Marshal(v)
                         if err != nil {
-                                return nil, err
+                                return nil, fmt.Errorf("failed to marshal nested object in field '%s': %v", key, err)
                         }
                         processedNestedData, err := m.decryptJSON(nestedJSON)
                         if err != nil {
@@ -297,7 +295,7 @@ func (m *CryptoMiddleware) decryptJSON(data []byte) (map[string]interface{}, err
                         for i, item := range v {
                                 itemJSON, err := json.Marshal(item)
                                 if err != nil {
-                                        return nil, err
+                                        return nil, fmt.Errorf("failed to marshal array item %d in field '%s': %v", i, key, err)
                                 }
                                 processedItem, err := m.decryptJSON(itemJSON)
                                 if err != nil {
@@ -308,7 +306,7 @@ func (m *CryptoMiddleware) decryptJSON(data []byte) (map[string]interface{}, err
                         jsonData[key] = v
 
                 default:
-            // If not a string, map, or array, leave it as is (no decryption needed for other types)
+                        // For non-string primitive values (numbers, booleans, null), keep as is
                 }
         }
 
