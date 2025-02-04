@@ -9,7 +9,6 @@ import (
 	models "github.com/Software78/encryption-test/src/models"
 	services "github.com/Software78/encryption-test/src/services"
 
-	// utils "github.com/Software78/encryption-test/src/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,7 +30,8 @@ func NewUserController(service services.UserService) *UserController {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		models.Login	true	"User object that needs to be created"
-//	@Success		200		{object}	utils.SuccessResponse
+//	@Success		200		{object}	models.SuccessResponse
+//	@Failure		400		{object}	models.HTTPError
 //	@Router			/auth/login [post]
 func (h *UserController) Login(c *gin.Context) {
 	login := &models.Login{}
@@ -56,7 +56,7 @@ func (h *UserController) Login(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, json.RawMessage(encryptedUser))
+	c.JSON(http.StatusOK,  models.SuccessResponse{Code: http.StatusOK, Success: true, Data: json.RawMessage(encryptedUser)})
 }
 
 
@@ -68,7 +68,8 @@ func (h *UserController) Login(c *gin.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		models.Register	true	"User object that needs to be created"
-//	@Success		200		{object}	utils.SuccessResponse
+//	@Success		200		{object}	models.SuccessResponse
+//	@Failure		400		{object}	models.HTTPError
 //	@Router			/auth/register [post]
 func (h *UserController) Register(c *gin.Context) {
 	register := &models.Register{}
@@ -101,5 +102,5 @@ func (h *UserController) Register(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK,  json.RawMessage(encryptedUser))
+	c.JSON(http.StatusOK,  models.SuccessResponse{Code: http.StatusOK, Success: true, Data: json.RawMessage(encryptedUser)})
 }

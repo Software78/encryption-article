@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Software78/encryption-test/src/utils"
+	"github.com/Software78/encryption-test/src/models"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -102,7 +102,7 @@ func handleErrors(c *gin.Context) {
 		default:
 			// Log unexpected errors
 			log.Printf("Unhandled error: %v", primaryError)
-			c.JSON(http.StatusInternalServerError, utils.APIError{
+			c.JSON(http.StatusInternalServerError, models.APIError{
 				Code:    http.StatusInternalServerError,
 				Message: "Internal Server Error",
 				Err:     primaryError,

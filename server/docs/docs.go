@@ -51,7 +51,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/HTTPError"
                         }
                     }
                 }
@@ -85,7 +91,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/HTTPError"
                         }
                     }
                 }
@@ -93,6 +105,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "HTTPError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "Login": {
             "type": "object",
             "required": [
@@ -137,15 +160,15 @@ const docTemplate = `{
                 }
             }
         },
-        "utils.SuccessResponse": {
+        "SuccessResponse": {
             "type": "object",
             "properties": {
                 "code": {
                     "type": "integer"
                 },
                 "data": {},
-                "message": {
-                    "type": "string"
+                "success": {
+                    "type": "boolean"
                 }
             }
         }

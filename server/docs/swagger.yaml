@@ -1,5 +1,12 @@
 basePath: /api/v1
 definitions:
+  HTTPError:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
   Login:
     properties:
       email:
@@ -32,13 +39,13 @@ definitions:
     - last_name
     - password
     type: object
-  utils.SuccessResponse:
+  SuccessResponse:
     properties:
       code:
         type: integer
       data: {}
-      message:
-        type: string
+      success:
+        type: boolean
     type: object
 host: localhost:8080
 info:
@@ -71,7 +78,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/HTTPError'
       summary: Login a user
       tags:
       - auth
@@ -93,7 +104,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/HTTPError'
       summary: Register a user
       tags:
       - auth
